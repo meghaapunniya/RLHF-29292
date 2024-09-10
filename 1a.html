@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Granny's Weather Dashboard</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/weather-icons@2.0.10/css/weather-icons.min.css"
+    />
+    <style>
+      body {
+        font-family: 'Arial', sans-serif;
+        background: linear-gradient(to right, #83a4d4, #b6fbff);
+        transition: background 1s ease;
+        margin: 0;
+        padding: 20px;
+      }
+      .dashboard {
+        max-width: 800px;
+        margin: auto;
+        background: rgba(255, 255, 255, 0.8);
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      }
+      #citySelector,
+      #weatherInfo,
+      #tempGraph,
+      #weeklyForecast {
+        margin: 20px 0;
+        padding: 15px;
+        border-bottom: 1px solid #eee;
+      }
+      .weather-icon {
+        font-size: 40px;
+      }
+      .temp-trend {
+        height: 200px;
+        width: 100%;
+      }
+      .day-forecast {
+        display: inline-block;
+        width: calc(14.28% - 10px); /* 7 days forecast */
+        text-align: center;
+        margin: 5px;
+        transition: transform 0.3s;
+      }
+      .day-forecast:hover {
+        transform: scale(1.05);
+      }
+      @keyframes weatherChange {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      .weather-update {
+        animation: weatherChange 0.5s ease-out;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="dashboard">
+      <div id="citySelector"></div>
+      <div id="weatherInfo" class="weather-update"></div>
+      <canvas id="tempGraph" class="temp-trend"></canvas>
+      <div id="weeklyForecast"></div>
+    </div>
+    <script>
+      // JavaScript will go here for API calls, DOM manipulation, etc.
+      const apiKey = 'YOUR_API_KEY';
+      const apiUrl = 'https://api.openweathermap.org/data/2.5/';
+
+      // Function to fetch weather data
+      async function fetchWeather(city) {
+        const response =
+          await fetch(`${apiUrl}weather?q=london&appid=bd5e378503939ddaee76f12ad7a97608
+&units=metric`);
+        const data = await response.json();
+        return data;
+      }
+
+      async function fetchForecast(city) {
+        const response =
+          await fetch(`${apiUrl}forecast?q=london&appid=bd5e378503939ddaee76f12ad7a97608
+&units=metric`);
+        const data = await response.json();
+        return data;
+      }
+
+      function updateUI(data, forecastData) {
+        document.getElementById('weatherInfo').innerHTML = `
+            <h2>${data.name}</h2>
+            <i class="wi wi-owm-${data.weather[0].id} weather-icon"></i>
+            <p>Temperature: ${data.main.temp}°C</p>
+            <p>Condition: ${data.weather[0].description}</p>
+            <p>Humidity: ${data.main.humidity}%</p>
+        `;
+        updateBackground(data.weather[0].main);
+        updateGraph(data);
+        updateWeeklyForecast(forecastData);
+      }
+
+      function updateGraph(data) {
+        // Simplified graph update, consider using Chart.js for complex graphs
+        let ctx = document.getElementById('tempGraph').getContext('2d');
+        // Here you would plot data.main.temp over time
+      }
+
+      function updateWeeklyForecast(forecastData) {
+        let forecasts = forecastData.list.filter((reading) =>
+          reading.dt_txt.includes('12:00:00')
+        );
+        let forecastDiv = document.getElementById('weeklyForecast');
+        forecastDiv.innerHTML = '';
+        forecasts.forEach((day) => {
+          let div = document.createElement('div');
+          div.className = 'day-forecast';
+          div.innerHTML = `<p>${new Date(day.dt * 1000).toLocaleDateString(
+            'en',
+            { weekday: 'short' }
+          )}</p>
+                             <i class="wi wi-owm-${day.weather[0].id}"></i>
+                             <p>${day.main.temp_min}°C / ${
+            day.main.temp_max
+          }°C</p>`;
+          forecastDiv.appendChild(div);
+        });
+      }
+
+      function updateBackground(condition) {
+        let body = document.body;
+        if (condition === 'Rain')
+          body.style.background = 'linear-gradient(to right, #acb6e5, #86fde8)';
+        else if (condition === 'Clear')
+          body.style.background = 'linear-gradient(to right, #83a4d4, #b6fbff)';
+        // Add more conditions as needed
+      }
+
+      // Initial city setup and event listeners for selection changes would go here
+      document.addEventListener('DOMContentLoaded', () => {
+        // Initialize with default city or user's location
+        fetchWeather('London').then((data) => {
+          fetchForecast('London').then((forecast) => updateUI(data, forecast));
+        });
+      });
+    </script>
+  </body>
+</html>

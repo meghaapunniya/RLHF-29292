@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Granny's Weather Dashboard</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css"
+    />
+    <style>
+      body {
+        font-family: 'Arial', sans-serif;
+        background: linear-gradient(to right, #83a4d4, #b6fbff);
+        color: #333;
+        margin: 0;
+        padding: 0;
+        transition: background 0.5s ease;
+      }
+
+      .container {
+        max-width: 800px;
+        margin: 20px auto;
+        background: rgba(255, 255, 255, 0.8);
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .selectors,
+      .weather-info,
+      .forecast {
+        margin-bottom: 20px;
+      }
+
+      select,
+      button {
+        padding: 10px;
+        margin: 5px;
+        border: none;
+        border-radius: 4px;
+        background-color: #f0f0f0;
+        cursor: pointer;
+        transition: background-color 0.3s;
+      }
+
+      select:hover,
+      button:hover {
+        background-color: #e0e0e0;
+      }
+
+      .weather-icon {
+        font-size: 40px;
+        animation: float 5s ease-in-out infinite;
+      }
+
+      @keyframes float {
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-10px);
+        }
+      }
+
+      #temperatureGraph {
+        height: 200px;
+        background: #f9f9f9;
+        border-radius: 4px;
+        overflow: hidden;
+      }
+
+      .forecast-day {
+        display: inline-block;
+        text-align: center;
+        margin: 0 10px;
+        transition: transform 0.3s;
+      }
+
+      .forecast-day:hover {
+        transform: scale(1.1);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="selectors">
+        <select id="countrySelect">
+          <!-- Options will be populated by JS -->
+        </select>
+        <select id="stateSelect">
+          <!-- Options will be populated by JS -->
+        </select>
+        <select id="citySelect">
+          <!-- Options will be populated by JS -->
+        </select>
+        <button onclick="fetchWeather()">Get Weather</button>
+      </div>
+
+      <div class="weather-info">
+        <h2 id="cityName"></h2>
+        <div>
+          <i id="weatherIcon" class="weather-icon"></i>
+          <span id="temperature"></span>°C
+        </div>
+        <p>Condition: <span id="condition"></span></p>
+        <p>Humidity: <span id="humidity"></span>%</p>
+        <p>Wind: <span id="windSpeed"></span> km/h</p>
+        <div id="temperatureGraph"></div>
+      </div>
+
+      <div class="forecast" id="weeklyForecast"></div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.min.js"></script>
+    <script>
+      // API Key for OpenWeatherMap
+      const API_KEY = 'YOUR_OPENWEATHERMAP_API_KEY';
+      let chart;
+
+      // Function to populate country, state, and city
+      async function populateSelectors() {
+        // Here you would fetch or use a predefined list of countries, states, and cities.
+        // For simplicity, this example won't implement this part fully.
+
+        const countrySelect = document.getElementById('countrySelect');
+        const stateSelect = document.getElementById('stateSelect');
+        const citySelect = document.getElementById('citySelect');
+
+        // Example: Add options
+        countrySelect.innerHTML = '<option value="us">United States</option>';
+        stateSelect.innerHTML = '<option value="ny">New York</option>';
+        citySelect.innerHTML = '<option value="nyc">New York City</option>';
+      }
+
+      function updateBackground(weather) {
+        const body = document.body;
+        if (weather.includes('rain')) {
+          body.style.background = 'linear-gradient(to right, #757F9A, #D7DDE8)';
+        } else if (weather.includes('cloud')) {
+          body.style.background = 'linear-gradient(to right, #bdc3c7, #2c3e50)';
+        } else if (weather.includes('sun')) {
+          body.style.background = 'linear-gradient(to right, #ff9966, #ff5e62)';
+        } else {
+          body.style.background = 'linear-gradient(to right, #83a4d4, #b6fbff)';
+        }
+      }
+
+      async function fetchWeather() {
+        const city = document.getElementById('citySelect').value;
+        const apiUrl = `https://api.openweathermap.org/data/2.5/weather?q=london&appid=bd5e378503939ddaee76f12ad7a97608
+&units=metric`;
+        const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?q=london&appid=bd5e378503939ddaee76f12ad7a97608
+&units=metric`;
+
+        try {
+          const [currentWeather, forecast] = await Promise.all([
+            fetch(apiUrl).then((response) => response.json()),
+            fetch(forecastUrl).then((response) => response.json()),
+          ]);
+
+          console.log('forecast', forecast);
+          document.getElementById('cityName').textContent = currentWeather.name;
+          document.getElementById('temperature').textContent =
+            currentWeather.main.temp;
+          document.getElementById('condition').textContent =
+            currentWeather.weather[0].description;
+          document.getElementById('humidity').textContent =
+            currentWeather.main.humidity;
+          document.getElementById('windSpeed').textContent =
+            currentWeather.wind.speed;
+
+          const iconClass = getWeatherIcon(currentWeather.weather[0].icon);
+          document.getElementById(
+            'weatherIcon'
+          ).className = `weather-icon fas ${iconClass}`;
+
+          updateBackground(currentWeather.weather[0].main);
+
+          updateForecast(forecast.list);
+          updateTemperatureGraph(forecast.list);
+        } catch (error) {
+          console.error('Failed to fetch weather data:', error);
+        }
+      }
+
+      function getWeatherIcon(iconCode) {
+        // Mapping OpenWeatherMap icons to FontAwesome
+        switch (
+          iconCode.slice(0, -1) // Remove 'd' or 'n' from icon code
+        ) {
+          case '01':
+            return 'fa-sun';
+          case '02':
+            return 'fa-cloud-sun';
+          case '03':
+          case '04':
+            return 'fa-cloud';
+          case '09':
+          case '10':
+            return 'fa-cloud-rain';
+          case '11':
+            return 'fa-bolt';
+          case '13':
+            return 'fa-snowflake';
+          case '50':
+            return 'fa-smog';
+          default:
+            return 'fa-question';
+        }
+      }
+
+      function updateForecast(forecastList) {
+        const forecastDiv = document.getElementById('weeklyForecast');
+        forecastDiv.innerHTML = '';
+        for (let i = 0; i < forecastList.length; i += 8) {
+          // Every 8th entry for daily forecast
+          const day = forecastList[i];
+          const dayDiv = document.createElement('div');
+          dayDiv.className = 'forecast-day';
+          dayDiv.innerHTML = `
+            <p>${new Date(day.dt * 1000).toLocaleDateString('en-US', {
+              weekday: 'short',
+            })}</p>
+            <i class="fas ${getWeatherIcon(day.weather[0].icon)}"></i>
+            <p>${day.main.temp_max.toFixed(1)}° / ${day.main.temp_min.toFixed(
+            1
+          )}°</p>
+        `;
+          forecastDiv.appendChild(dayDiv);
+        }
+      }
+
+      function updateTemperatureGraph(data) {
+        if (chart) chart.destroy();
+
+        const ctx = document
+          .getElementById('temperatureGraph')
+          .getContext('2d');
+        const temps = data.slice(0, 8).map((item) => item.main.temp); // Take first 8 for 24 hours
+        const labels = data.slice(0, 8).map((item) =>
+          new Date(item.dt * 1000).toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+          })
+        );
+
+        chart = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: 'Temperature (°C)',
+                data: temps,
+                borderColor: 'rgba(75, 192, 192, 1)',
+                fill: false,
+                tension: 0.1,
+              },
+            ],
+          },
+          options: {
+            animation: {
+              duration: 1000,
+              easing: 'easeInOutQuad',
+            },
+            scales: {
+              yAxes: [
+                {
+                  ticks: {
+                    beginAtZero: false,
+                  },
+                },
+              ],
+            },
+          },
+        });
+      }
+
+      // Initialize selectors when the page loads
+      populateSelectors();
+    </script>
+  </body>
+</html>
