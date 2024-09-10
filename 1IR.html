@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Weather Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      transition: background 0.5s ease;
+    }
+
+    .dashboard {
+      background: rgba(255, 255, 255, 0.8);
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      max-width: 900px;
+      width: 100%;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .city-selector {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .city-selector select {
+      padding: 10px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      font-size: 16px;
+      transition: all 0.3s ease;
+    }
+
+    .city-selector select:hover {
+      background-color: #f0f0f0;
+    }
+
+    .current-weather {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .weather-icon {
+      font-size: 48px;
+      animation: float 5s ease-in-out infinite;
+    }
+
+    @keyframes float {
+
+      0%,
+      100% {
+        transform: translateY(0);
+      }
+
+      50% {
+        transform: translateY(-10px);
+      }
+    }
+
+    .temperature {
+      font-size: 36px;
+      font-weight: bold;
+    }
+
+    .weather-details {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 20px;
+        opacity: 0; /* Hide initially */
+        transition: opacity 0.5s ease;
+    }
+    .weather-details.show {
+        opacity: 1; /* Show when weather data is available */
+    }
+    .weather-details div {
+      text-align: center;
+    }
+
+    .temperature-trend {
+      margin-bottom: 20px;
+    }
+
+    .weekly-forecast {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .forecast-day {
+      text-align: center;
+      transition: all 0.3s ease;
+    }
+
+    .forecast-day:hover {
+      transform: scale(1.05);
+    }
+
+    @keyframes rainDrop {
+      0% {
+        transform: translateY(-10px);
+        opacity: 0;
+      }
+
+      50% {
+        opacity: 1;
+      }
+
+      100% {
+        transform: translateY(10px);
+        opacity: 0;
+      }
+    }
+
+    @keyframes sunRays {
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    @keyframes cloudMove {
+      0% {
+        transform: translateX(-10px);
+      }
+
+      50% {
+        transform: translateX(10px);
+      }
+
+      100% {
+        transform: translateX(-10px);
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="dashboard">
+    <h1>Weather Dashboard</h1>
+    <div class="city-selector">
+      <select id="countrySelect">
+        <option value="">Select Country</option>
+      </select>
+      <select id="stateSelect" disabled>
+        <option value="">Select State</option>
+      </select>
+      <select id="citySelect" disabled>
+        <option value="">Select City</option>
+      </select>
+    </div>
+    <div class="current-weather">
+      <div class="weather-icon" id="weatherIcon"></div>
+      <div class="temperature" id="temperature"></div>
+      <div id="weatherCondition"></div>
+    </div>
+    <div class="weather-details">
+      <div>
+        <p><strong>Humidity</strong></p>
+        <p id="humidity"></p>
+      </div>
+      <div>
+        <p><strong>Wind Speed</strong></p>
+        <p id="windSpeed"></p>
+      </div>
+    </div>
+    <div class="temperature-trend">
+      <canvas id="temperatureChart"></canvas>
+    </div>
+    <div class="weekly-forecast" id="weeklyForecast"></div>
+  </div>
+
+  <script>
+    const apiKey = 'bd5e378503939ddaee76f12ad7a97608';
+    const countrySelect = document.getElementById('countrySelect');
+    const stateSelect = document.getElementById('stateSelect');
+    const citySelect = document.getElementById('citySelect');
+    const weatherIcon = document.getElementById('weatherIcon');
+    const temperature = document.getElementById('temperature');
+    const weatherCondition = document.getElementById('weatherCondition');
+    const humidity = document.getElementById('humidity');
+    const windSpeed = document.getElementById('windSpeed');
+    const weeklyForecast = document.getElementById('weeklyForecast');
+    const weatherDetails = document.querySelector('.weather-details');
+
+
+    const countriesJSON = 'https://raw.githubusercontent.com/dr5hn/countries-states-cities-database/master/countries.json';
+    const statesJSON = 'https://raw.githubusercontent.com/dr5hn/countries-states-cities-database/master/states.json';
+    const citiesJSON = 'https://raw.githubusercontent.com/dr5hn/countries-states-cities-database/master/cities.json';
+
+    let countries, states, cities;
+    let temperatureChart;
+
+    // Fetch countries
+    fetch(countriesJSON)
+      .then(response => response.json())
+      .then(data => {
+        countries = data;
+        countries.sort((a, b) => a.name.localeCompare(b.name));
+        countries.forEach(country => {
+          const option = document.createElement('option');
+          option.value = country.id;
+          option.textContent = country.name;
+          countrySelect.appendChild(option);
+        });
+      });
+
+    // Fetch states
+    fetch(statesJSON)
+      .then(response => response.json())
+      .then(data => {
+        states = data;
+      });
+
+    // Fetch cities
+    fetch(citiesJSON)
+      .then(response => response.json())
+      .then(data => {
+        cities = data;
+      });
+
+    countrySelect.addEventListener('change', () => {
+      stateSelect.innerHTML = '<option value="">Select State</option>';
+      citySelect.innerHTML = '<option value="">Select City</option>';
+      stateSelect.disabled = true;
+      citySelect.disabled = true;
+
+      if (countrySelect.value) {
+        const countryStates = states.filter(state => state.country_id == countrySelect.value);
+        if (countryStates.length > 0) {
+          countryStates.sort((a, b) => a.name.localeCompare(b.name));
+          countryStates.forEach(state => {
+            const option = document.createElement('option');
+            option.value = state.id;
+            option.textContent = state.name;
+            stateSelect.appendChild(option);
+          });
+          stateSelect.disabled = false;
+        } else {
+          populateCities(countrySelect.value);
+        }
+      }
+    });
+
+    stateSelect.addEventListener('change', () => {
+      citySelect.innerHTML = '<option value="">Select City</option>';
+      citySelect.disabled = true;
+
+      if (stateSelect.value) {
+        populateCities(null, stateSelect.value);
+      }
+    });
+
+    function populateCities(countryId, stateId) {
+      let citiesList;
+      if (stateId) {
+        citiesList = cities.filter(city => city.state_id == stateId);
+      } else {
+        citiesList = cities.filter(city => city.country_id == countryId);
+      }
+
+      if (citiesList.length > 0) {
+        citiesList.sort((a, b) => a.name.localeCompare(b.name));
+        citiesList.forEach(city => {
+          const option = document.createElement('option');
+          option.value = city.name;
+          option.textContent = city.name;
+          citySelect.appendChild(option);
+        });
+        citySelect.disabled = false;
+      }
+    }
+
+    citySelect.addEventListener('change', () => {
+      if (citySelect.value) {
+        fetchWeatherData(citySelect.value);
+        fetchForecastData(citySelect.value)
+      }
+    });
+
+    function fetchWeatherData(city) {
+      fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric`)
+        .then(response => response.json())
+        .then(data => {
+          updateCurrentWeather(data);
+          updateBackgroundGradient(data.weather[0].main);
+          fetchForecastData(city);
+        });
+    }
+
+    function updateCurrentWeather(data) {
+      const weatherIconCode = data.weather[0].icon;
+      weatherIcon.innerHTML = getWeatherIcon(weatherIconCode);
+      temperature.textContent = `${Math.round(data.main.temp)}°C`;
+      weatherCondition.textContent = data.weather[0].description;
+      humidity.textContent = `${data.main.humidity}%`;
+      windSpeed.textContent = `${data.wind.speed} m/s`;
+      weatherDetails.classList.add('show'); // Show weather details
+
+    }
+
+    function getWeatherIcon(iconCode) {
+      const iconMap = {
+        '01d': '☀️',
+        '01n': '🌙',
+        '02d': '⛅',
+        '02n': '☁️',
+        '03d': '☁️',
+        '03n': '☁️',
+        '04d': '☁️',
+        '04n': '☁️',
+        '09d': '🌧️',
+        '09n': '🌧️',
+        '10d': '🌦️',
+        '10n': '🌧️',
+        '11d': '⛈️',
+        '11n': '⛈️',
+        '13d': '❄️',
+        '13n': '❄️',
+        '50d': '🌫️',
+        '50n': '🌫️'
+      };
+      return iconMap[iconCode] || '❓';
+    }
+
+    function updateBackgroundGradient(weatherCondition) {
+      const gradients = {
+        Clear: 'linear-gradient(to bottom right, #FDB813, #FFCF00)',
+        Clouds: 'linear-gradient(to bottom right, #757F9A, #D7DDE8)',
+        Rain: 'linear-gradient(to bottom right, #00416A, #E4E5E6)',
+        Snow: 'linear-gradient(to bottom right, #E6DADA, #274046)',
+        Thunderstorm: 'linear-gradient(to bottom right, #232526, #414345)',
+        Drizzle: 'linear-gradient(to bottom right, #2C3E50, #4CA1AF)',
+        Mist: 'linear-gradient(to bottom right, #606c88, #3f4c6b)'
+      };
+      document.body.style.background = gradients[weatherCondition] || gradients.Clear;
+    }
+
+    function fetchForecastData(city) {
+      fetch(`https://api.openweathermap.org/data/2.5/forecast?q=${city}&appid=${apiKey}&units=metric`)
+        .then(response => response.json())
+        .then(data => {
+          updateTemperatureTrend(data.list.slice(0, 8));
+          updateWeeklyForecast(data.list);
+        });
+    }
+
+    function updateTemperatureTrend(hourlyData) {
+      const ctx = document.getElementById('temperatureChart').getContext('2d');
+      // Destroy the old chart instance if it exists
+      if (temperatureChart) {
+        temperatureChart.destroy();
+      }
+      temperatureChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: hourlyData.map(item => new Date(item.dt * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })),
+          datasets: [{
+            label: 'Temperature (°C)',
+            data: hourlyData.map(item => item.main.temp),
+            borderColor: 'rgba(255, 99, 132, 1)',
+            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+            tension: 0.4
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: {
+              beginAtZero: false
+            }
+          }
+        }
+      });
+    }
+
+    function updateWeeklyForecast(forecastData) {
+      weeklyForecast.innerHTML = '';
+      const dailyData = forecastData.filter((item, index) => index % 8 === 0).slice(0, 7);
+      dailyData.forEach(day => {
+        const date = new Date(day.dt * 1000);
+        const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+        const icon = getWeatherIcon(day.weather[0].icon);
+        const temp = Math.round(day.main.temp);
+        const forecastDay = document.createElement('div');
+        forecastDay.className = 'forecast-day';
+        forecastDay.innerHTML = `
+                    <p>${dayName}</p>
+                    <div class="weather-icon">${icon}</div>
+                    <p>${temp}°C</p>
+                `;
+        weeklyForecast.appendChild(forecastDay);
+      });
+    }
+  </script>
+</body>
+
+</html>
