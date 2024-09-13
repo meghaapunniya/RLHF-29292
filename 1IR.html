@@ -80,22 +80,49 @@
     }
 
     .weather-details {
-        display: flex;
-        justify-content: space-between;
-        margin-bottom: 20px;
-        opacity: 0; /* Hide initially */
-        transition: opacity 0.5s ease;
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      opacity: 0;
+      /* Hide initially */
+      transition: opacity 0.5s ease;
     }
+
     .weather-details.show {
-        opacity: 1; /* Show when weather data is available */
+      opacity: 1;
+      /* Show when weather data is available */
     }
+
     .weather-details div {
       text-align: center;
     }
 
     .temperature-trend {
       margin-bottom: 20px;
+      padding: 20px;
+      background-color: white;
+      /* Card background */
+      border-radius: 20px;
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1),
+        0 6px 6px rgba(0, 0, 0, 0.2);
+      /* Layered shadows for depth */
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      transform: translateY(0);
+      /* Initial position */
     }
+
+    .temperature-trend:hover {
+      transform: translateY(-10px);
+      /* Lift up on hover */
+      box-shadow: 0 15px 25px rgba(0, 0, 0, 0.2),
+        0 8px 10px rgba(0, 0, 0, 0.3);
+      /* Deeper shadow on hover */
+    }
+
+    #temperatureChart {
+      transition: transform 0.3s ease;
+    }
+
 
     .weekly-forecast {
       display: flex;
