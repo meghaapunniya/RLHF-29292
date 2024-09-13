@@ -101,22 +101,17 @@
       margin-bottom: 20px;
       padding: 20px;
       background-color: white;
-      /* Card background */
       border-radius: 20px;
       box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1),
-        0 6px 6px rgba(0, 0, 0, 0.2);
-      /* Layered shadows for depth */
+        0 6px 6px rgba(0, 0, 0, 0.2);  /* Layered shadows for depth */
       transition: transform 0.3s ease, box-shadow 0.3s ease;
-      transform: translateY(0);
-      /* Initial position */
+      transform: translateY(0); /* Initial position */
     }
 
     .temperature-trend:hover {
-      transform: translateY(-10px);
-      /* Lift up on hover */
+      transform: translateY(-10px);   /* Lift up on hover */
       box-shadow: 0 15px 25px rgba(0, 0, 0, 0.2),
-        0 8px 10px rgba(0, 0, 0, 0.3);
-      /* Deeper shadow on hover */
+        0 8px 10px rgba(0, 0, 0, 0.3);    /* Deeper shadow on hover */
     }
 
     #temperatureChart {
